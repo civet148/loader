@@ -25,7 +25,14 @@ const (
 		") ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='run config table';\n"
 )
 
-func GetConfig(strDSN, strConfigName string, model interface{}, cctx *cli.Context, flags ...string) error {
+type runConfigDO struct {
+	ConfigName string `json:"config_name"`
+	ConfigKey string `json:"config_key"`
+	ConfigValue string `json:"config_value"`
+}
+
+//Configure initialize or load run config from database
+func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Context, flags ...string) error {
 	db, err := sqlca.NewEngine(strDSN)
 	if err != nil {
 		log.Errorf(err.Error())
@@ -37,6 +44,7 @@ func GetConfig(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 	var id int
 	var count int64
 	count, err = db.Model(&id).
+		NoVerbose().
 		Table(TableNameRunConfig).
 		Select(RUN_CONFIG_COLUMN_ID).
 		Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
@@ -56,7 +64,25 @@ func GetConfig(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 	log.Infof("config values [%+v]", values)
 	if count == 0 {
 		//TODO initial run config params
-		log.Warnf("TODO initial run config params")
+		for k, v := range values {
+			var strValue string
+			switch v.(type) {
+			case string:
+				strValue = fmt.Sprintf("\"%v\"",v.(string))
+			default:
+				strValue = fmt.Sprintf("%v", v)
+			}
+
+			var do = &runConfigDO{
+				ConfigName:  strConfigName,
+				ConfigKey:   k,
+				ConfigValue: strValue,
+			}
+			_, err = db.Model(&do).Table(TableNameRunConfig).Insert()
+			if err != nil {
+				log.Errorf(err.Error())
+			}
+		}
 	} else {
 		//TODO read run config params from database
 	}

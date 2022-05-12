@@ -65,7 +65,7 @@ func main() {
 				strDSN = cctx.Args().First()
 			}
 
-			err := loader.GetConfig(
+			err := loader.Configure(
 				strDSN, CONFIG_NAME, cfg, cctx,
 				CMD_FLAG_NAME_DEBUG,
 				CMD_FLAG_NAME_STATIC,
