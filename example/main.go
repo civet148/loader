@@ -52,7 +52,13 @@ func main() {
 		},
 		Commands: nil,
 		Action: func(cctx *cli.Context) error {
-			var cfg = &Config{}
+			var cfg = &Config{
+				Debug:     true,
+				HttpAddr:  ":80",
+				Static:    "/opt/static",
+				ImagePath: "/data/images",
+				Domain:    "https://www.mydomain.com",
+			}
 			var strDSN = "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8"
 
 			if cctx.Args().First() != "" {
