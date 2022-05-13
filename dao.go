@@ -6,7 +6,7 @@ import (
 	"github.com/civet148/sqlca/v2"
 )
 
-func InsertConfig(db *sqlca.Engine, do *RunConfigDO) (err error) {
+func daoInsertConfig(db *sqlca.Engine, do *RunConfigDO) (err error) {
 	_, err = db.Model(&do).Table(TableNameRunConfig).Insert()
 	if err != nil {
 		err = log.Errorf(err.Error())
@@ -15,7 +15,7 @@ func InsertConfig(db *sqlca.Engine, do *RunConfigDO) (err error) {
 	return nil
 }
 
-func GetConfigCount(db *sqlca.Engine, strConfigName string) (count int64, err error) {
+func daoGetConfigCount(db *sqlca.Engine, strConfigName string) (count int64, err error) {
 	var id int
 
 	count, err = db.Model(&id).
@@ -37,7 +37,7 @@ func GetConfigCount(db *sqlca.Engine, strConfigName string) (count int64, err er
 	return count, nil
 }
 
-func LoadConfig(db *sqlca.Engine, strConfigName string, model interface{}) (err error) {
+func daoLoadConfig(db *sqlca.Engine, strConfigName string, model interface{}) (err error) {
 	/*
 	 SELECT  CONCAT('{', GROUP_CONCAT('"', config_key, '":', config_value, '"'), '}') AS config FROM run_config  WHERE 1=1 AND config_name='user-backend';
 	*/

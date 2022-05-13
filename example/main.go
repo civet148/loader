@@ -66,11 +66,10 @@ func main() {
 			}
 
 			err := loader.Configure(
-				strDSN, CONFIG_NAME, cfg, cctx,
-				CMD_FLAG_NAME_DEBUG,
-				CMD_FLAG_NAME_STATIC,
-				CMD_FLAG_NAME_IMAGE_PATH,
-				CMD_FLAG_NAME_DOMAIN,
+				cctx,
+				strDSN,
+				CONFIG_NAME,
+				cfg,
 			)
 			if err != nil {
 				log.Errorf("load run config from db error [%s]", err)
@@ -85,5 +84,4 @@ func main() {
 		os.Exit(1)
 		return
 	}
-
 }
