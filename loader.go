@@ -45,42 +45,45 @@ func Configure(ctx *cli.Context, strDSN, strConfigName string, model interface{}
 			return err
 		}
 
-		db.Debug(true)
+		if err = daoInitTable(db, strConfigName); err != nil {
+			return err
+		}
 
-		var count int64
-		count, err = daoGetConfigCount(db, strConfigName)
+		var params map[string]string
+		params, err = daoGetConfigParams(db, strConfigName)
 		values, _ := parseModelValues(model, TagName_DB)
-		if count == 0 {
 
-			for k, v := range values {
-				var strValue string
-				switch v.(type) {
-				case string:
-					strValue = fmt.Sprintf("\"%v\"", v.(string))
-				default:
-					strValue = fmt.Sprintf("%v", v)
-				}
-
-				var do = &RunConfigDO{
-					ConfigName:  strConfigName,
-					ConfigKey:   k,
-					ConfigValue: strValue,
-				}
-				err = daoInsertConfig(db, do)
-				if err != nil {
-					err = log.Errorf(err.Error())
-					return err
-				}
+		for k, v := range values {
+			var strValue string
+			switch v.(type) {
+			case string:
+				strValue = fmt.Sprintf("\"%v\"", v.(string))
+			default:
+				strValue = fmt.Sprintf("%v", v)
 			}
-		} else {
-			//read run config params from database
-			err = daoLoadConfig(db, strConfigName, model)
+			if _, ok := params[k]; ok {
+				continue
+			}
+			var do = &RunConfigDO{
+				ConfigName:  strConfigName,
+				ConfigKey:   k,
+				ConfigValue: strValue,
+			}
+			err = daoInsertConfig(db, do)
 			if err != nil {
-				err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+				err = log.Errorf(err.Error())
 				return err
 			}
 		}
+
+		//read run config params from database
+		err = daoLoadConfig(db, strConfigName, model)
+		if err != nil {
+			err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+			return err
+		}
 	}
+
 	if ctx != nil {
 		err := setCliValues(ctx, model)
 		if err != nil {
@@ -100,7 +103,7 @@ func setCliValues(ctx *cli.Context, model interface{}) error {
 	if len(values) == 0 {
 		return log.Errorf("no CLI tag found in model")
 	}
-	if err = setModelValues(ctx, model); err !=nil {
+	if err = setModelValues(ctx, model); err != nil {
 		return err
 	}
 	return err
@@ -160,8 +163,8 @@ func parseStructField(typ reflect.Type, val reflect.Value, tag string) map[strin
 
 // get struct field's tag value
 func getTag(sf reflect.StructField, tagName string) string {
-	 tagValue := sf.Tag.Get(tagName)
-	 return handleTagValue(tagName, tagValue)
+	tagValue := sf.Tag.Get(tagName)
+	return handleTagValue(tagName, tagValue)
 }
 
 func setModelValues(ctx *cli.Context, model interface{}) error {
@@ -191,7 +194,6 @@ func setModelValues(ctx *cli.Context, model interface{}) error {
 	}
 	return nil
 }
-
 
 // parse struct fields
 func setStructValue(ctx *cli.Context, typ reflect.Type, val reflect.Value) (err error) {
@@ -278,7 +280,7 @@ func handleTagValue(strTagName, strTagValue string) string {
 
 		vs := strings.Split(strTagValue, ",")
 		strTagValue = vs[0]
-	} else  {
+	} else {
 
 	}
 	return strTagValue

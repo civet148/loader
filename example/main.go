@@ -25,6 +25,7 @@ type Config struct {
 	Static    string `cli:"static" json:"static" db:"static" toml:"static"`
 	ImagePath string `cli:"image-path" json:"image_path" db:"image_path" toml:"image_path"`
 	Domain    string `cli:"domain" json:"domain" db:"domain" toml:"domain"`
+	Timeout   int    `cli:"timeout" json:"timeout" db:"timeout" toml:"timeout"`
 }
 
 func main() {

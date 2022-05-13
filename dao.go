@@ -15,26 +15,50 @@ func daoInsertConfig(db *sqlca.Engine, do *RunConfigDO) (err error) {
 	return nil
 }
 
-func daoGetConfigCount(db *sqlca.Engine, strConfigName string) (count int64, err error) {
+func daoInitTable(db *sqlca.Engine, strConfigName string) (err error) {
 	var id int
-
-	count, err = db.Model(&id).
+	_, err = db.Model(&id).
 		NoVerbose().
 		Table(TableNameRunConfig).
 		Select(RUN_CONFIG_COLUMN_ID).
 		Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
-		Limit(1).
 		Query()
 	if err != nil {
 
 		//create table if not exist
 		_, _, err = db.ExecRaw(table_sql)
 		if err != nil {
-			return 0, log.Errorf(err.Error())
+			return log.Errorf(err.Error())
 		}
 		log.Infof("table %s not exist, auto create it [OK]", TableNameRunConfig)
 	}
-	return count, nil
+	return nil
+}
+
+func daoGetConfigParams(db *sqlca.Engine, strConfigName string) (params map[string]string, err error) {
+
+	var dos []*RunConfigDO
+	params = make(map[string]string)
+
+	_, err = db.Model(&dos).
+		NoVerbose().
+		Table(TableNameRunConfig).
+		Select(RUN_CONFIG_COLUMN_CONFIG_KEY, RUN_CONFIG_COLUMN_CONFIG_VALUE).
+		Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
+		Query()
+	if err != nil {
+
+		//create table if not exist
+		_, _, err = db.ExecRaw(table_sql)
+		if err != nil {
+			return nil, log.Errorf(err.Error())
+		}
+		log.Infof("table %s not exist, auto create it [OK]", TableNameRunConfig)
+	}
+	for _, do := range dos {
+		params[do.ConfigKey] = do.ConfigValue
+	}
+	return params, nil
 }
 
 func daoLoadConfig(db *sqlca.Engine, strConfigName string, model interface{}) (err error) {
@@ -51,7 +75,7 @@ func daoLoadConfig(db *sqlca.Engine, strConfigName string, model interface{}) (e
 		return err
 	}
 	if err = json.Unmarshal([]byte(strConfigJson), model); err != nil {
-		err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+		err = log.Errorf("config json %s unmarshal error [%s]", strConfigJson, err.Error())
 		return err
 	}
 	return nil
