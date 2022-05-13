@@ -1,5 +1,5 @@
 # loader
-program config load from db and overwirte by CLI
+program config load from db and overwrite by CLI
 
 # example database
 
@@ -23,25 +23,14 @@ CREATE TABLE `run_config` (
 - run_config table records
 
 ```shell
-+----+----------------+------------+----------------------------------------------------------------------+
-| id | config_name    | config_key | config_value                                                         |
-+----+----------------+------------+----------------------------------------------------------------------+
-|  1 | user-backend   | http_addr  | "0.0.0.0:80"                                                         |
-|  2 | user-backend   | static     | "/opt/static"                                                        |
-|  3 | user-backend   | image_path | "/data/nft-printer/images"                                           |
-|  4 | user-backend   | domain     | "http://dev-nftprinter-bcos.storeros.com/nft-printer/images"         |
-|  5 | user-backend   | debug      | true                                                                 |
-|  6 | user-backend   | ak         | "jIgMtVTYIfSA2bUteP"                                                 |
-|  7 | user-backend   | sk         | "ncmTbkUMNz7nyZFL3DZSUOxvrDQcmIGt0PZI"                               |
-|  8 | user-backend   | nft_url    | "https://dev-dcs-system.storeros.com/api/v1/chain/detail/collection" |
-|  9 | user-backend   | bcos_url   | "http://192.168.20.108:8545"                                         |
-| 10 | user-backend   | chain_id   | 1                                                                    |
-| 11 | user-backend   | group_id   | 1                                                                    |
-| 12 | system-backend | http_addr  | "0.0.0.0:80"                                                         |
-| 13 | system-backend | static     | "/opt/static"                                                        |
-| 14 | system-backend | image_path | "/data/nft-printer/images"                                           |
-| 15 | system-backend | domain     | "http://dev-nftprinter-bcos.storeros.com/nft-printer/images"         |
-| 16 | system-backend | debug      | true                                                                 |
-+----+----------------+------------+----------------------------------------------------------------------+
++----+----------------+------------+-------------------------------------------+
+| id | config_name    | config_key | config_value                              |
++----+----------------+------------+-------------------------------------------+
+|  1 | user-service   | http_addr  | "0.0.0.0:80"                              |
+|  2 | user-service   | static     | "/var/www/html"                           |
+|  3 | user-service   | image_path | "/data/images"                            |
+|  4 | user-service   | domain     | "http://user.mydomain.com/images"         |
+|  5 | user-service   | debug      | true                                      |                                                                |
++----+----------------+------------+-------------------------------------------+
 
 ```
