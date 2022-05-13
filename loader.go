@@ -14,8 +14,8 @@ import (
 const (
 	TagName_DB   = "db"
 	TagName_JSON = "json"
-	TagName_Bson = "bson"
-	TagName_Toml = "toml"
+	TagName_BSON = "bson"
+	TagName_TOML = "toml"
 	TagName_CLI  = "cli"
 )
 
