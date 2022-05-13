@@ -1,7 +1,6 @@
 package loader
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
@@ -67,19 +66,8 @@ func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 		}
 	} else {
 		//read run config params from database
-		/*
-		 SELECT  CONCAT('{', GROUP_CONCAT('"', config_key, '":', config_value, '"'), '}') AS config FROM run_config  WHERE 1=1 AND config_name='user-backend';
-		*/
-		var strConfigJson string
-		if _, err = db.Model(&strConfigJson).
-			Table(TableNameRunConfig).
-			Select("CONCAT('{', GROUP_CONCAT('\"', config_key, '\":', config_value), '}') AS config").
-			Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
-			Query(); err != nil {
-			err = log.Errorf("load config from database [%s] error [%s]", strDSN, err.Error())
-			return err
-		}
-		if err = json.Unmarshal([]byte(strConfigJson), model); err != nil {
+		err = LoadConfig(db, strConfigName, model)
+		if err != nil {
 			err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
 			return err
 		}
