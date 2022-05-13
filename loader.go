@@ -30,12 +30,6 @@ const (
 		") ENGINE=InnoDB AUTO_INCREMENT=131 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='run config table';\n"
 )
 
-type runConfigDO struct {
-	ConfigName  string `json:"config_name"`
-	ConfigKey   string `json:"config_key"`
-	ConfigValue string `json:"config_value"`
-}
-
 //Configure initialize or load run config from database
 func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Context, flags ...string) error {
 	db, err := sqlca.NewEngine(strDSN)
@@ -46,25 +40,8 @@ func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 
 	db.Debug(true)
 
-	var id int
 	var count int64
-	count, err = db.Model(&id).
-		NoVerbose().
-		Table(TableNameRunConfig).
-		Select(RUN_CONFIG_COLUMN_ID).
-		Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
-		Limit(1).
-		Query()
-	if err != nil {
-
-		//create table if not exist
-		_, _, err = db.ExecRaw(table_sql)
-		if err != nil {
-			return log.Errorf(err.Error())
-		}
-		log.Infof("table %s not exist, auto create it [OK]", TableNameRunConfig)
-	}
-
+	count, err = GetConfigCount(db, strConfigName)
 	values, _ := parseModelValues(model, TagName_DB)
 	if count == 0 {
 
@@ -77,12 +54,12 @@ func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 				strValue = fmt.Sprintf("%v", v)
 			}
 
-			var do = &runConfigDO{
+			var do = &RunConfigDO{
 				ConfigName:  strConfigName,
 				ConfigKey:   k,
 				ConfigValue: strValue,
 			}
-			_, err = db.Model(&do).Table(TableNameRunConfig).Insert()
+			err = InsertConfig(db, do)
 			if err != nil {
 				err = log.Errorf(err.Error())
 				return err
