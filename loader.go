@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
@@ -9,7 +10,11 @@ import (
 )
 
 const (
-	json_tag = "json"
+	TagName_DB   = "db"
+	TagName_JSON = "json"
+	TagName_Bson = "bson"
+	TagName_Toml = "toml"
+	TagName_CLI  = "cli"
 )
 
 const (
@@ -26,8 +31,8 @@ const (
 )
 
 type runConfigDO struct {
-	ConfigName string `json:"config_name"`
-	ConfigKey string `json:"config_key"`
+	ConfigName  string `json:"config_name"`
+	ConfigKey   string `json:"config_key"`
 	ConfigValue string `json:"config_value"`
 }
 
@@ -60,15 +65,14 @@ func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 		log.Infof("table %s not exist, auto create it [OK]", TableNameRunConfig)
 	}
 
-	values, _ := parseModelValues(model)
-	log.Infof("config values [%+v]", values)
+	values, _ := parseModelValues(model, TagName_DB)
 	if count == 0 {
-		//TODO initial run config params
+
 		for k, v := range values {
 			var strValue string
 			switch v.(type) {
 			case string:
-				strValue = fmt.Sprintf("\"%v\"",v.(string))
+				strValue = fmt.Sprintf("\"%v\"", v.(string))
 			default:
 				strValue = fmt.Sprintf("%v", v)
 			}
@@ -80,16 +84,33 @@ func Configure(strDSN, strConfigName string, model interface{}, cctx *cli.Contex
 			}
 			_, err = db.Model(&do).Table(TableNameRunConfig).Insert()
 			if err != nil {
-				log.Errorf(err.Error())
+				err = log.Errorf(err.Error())
+				return err
 			}
 		}
 	} else {
-		//TODO read run config params from database
+		//read run config params from database
+		/*
+		 SELECT  CONCAT('{', GROUP_CONCAT('"', config_key, '":', config_value, '"'), '}') AS config FROM run_config  WHERE 1=1 AND config_name='user-backend';
+		*/
+		var strConfigJson string
+		if _, err = db.Model(&strConfigJson).
+			Table(TableNameRunConfig).
+			Select("CONCAT('{', GROUP_CONCAT('\"', config_key, '\":', config_value), '}') AS config").
+			Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
+			Query(); err != nil {
+			err = log.Errorf("load config from database [%s] error [%s]", strDSN, err.Error())
+			return err
+		}
+		if err = json.Unmarshal([]byte(strConfigJson), model); err != nil {
+			err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+			return err
+		}
 	}
 	return nil
 }
 
-func parseModelValues(model interface{}) (map[string]interface{}, error) {
+func parseModelValues(model interface{}, tag string) (map[string]interface{}, error) {
 	var values map[string]interface{}
 	typ := reflect.TypeOf(model)
 	val := reflect.ValueOf(model)
@@ -106,7 +127,7 @@ func parseModelValues(model interface{}) (map[string]interface{}, error) {
 	switch kind {
 	case reflect.Struct:
 		{
-			values = parseStructField(typ, val)
+			values = parseStructField(typ, val, tag)
 		}
 	default:
 		{
@@ -117,7 +138,7 @@ func parseModelValues(model interface{}) (map[string]interface{}, error) {
 }
 
 // parse struct fields
-func parseStructField(typ reflect.Type, val reflect.Value) map[string]interface{} {
+func parseStructField(typ reflect.Type, val reflect.Value, tag string) map[string]interface{} {
 	var values = make(map[string]interface{})
 
 	NumField := val.NumField()
@@ -132,8 +153,10 @@ func parseStructField(typ reflect.Type, val reflect.Value) map[string]interface{
 		if !valField.IsValid() || !valField.CanInterface() {
 			continue
 		}
-		tagVal := getTag(typField, json_tag)
-		values[tagVal] = valField.Interface()
+		tagVal := getTag(typField, tag)
+		if tagVal != "" {
+			values[tagVal] = valField.Interface()
+		}
 	}
 
 	return values

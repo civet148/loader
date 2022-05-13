@@ -7,9 +7,9 @@ import (
 	"os"
 )
 
-const(
+const (
 	PROGRAM_NAME = "loader"
-	CONFIG_NAME = "run-params"
+	CONFIG_NAME  = "run-params"
 )
 
 const (
@@ -20,11 +20,11 @@ const (
 )
 
 type Config struct {
-	Debug     bool   `cli:"debug" json:"debug" toml:"debug"`
-	HttpAddr  string `cli:"http-addr" json:"http_addr" toml:"http_addr"`
-	Static    string `cli:"static" json:"static" toml:"static"`
-	ImagePath string `cli:"image-path" json:"image_path" toml:"image_path"`
-	Domain    string `cli:"domain" json:"domain" toml:"domain"`
+	Debug     bool   `cli:"debug" json:"debug" db:"debug" toml:"debug"`
+	HttpAddr  string `cli:"http-addr" json:"http_addr" db:"http_addr" toml:"http_addr"`
+	Static    string `cli:"static" json:"static" db:"static" toml:"static"`
+	ImagePath string `cli:"image-path" json:"image_path" db:"image_path" toml:"image_path"`
+	Domain    string `cli:"domain" json:"domain" db:"domain" toml:"domain"`
 }
 
 func main() {
@@ -76,6 +76,7 @@ func main() {
 				log.Errorf("load run config from db error [%s]", err)
 				return err
 			}
+			log.Infof("config from db [%+v]", cfg)
 			return nil
 		},
 	}
