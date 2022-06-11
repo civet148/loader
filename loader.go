@@ -52,6 +52,12 @@ func Configure(ctx *cli.Context, strDSN, strConfigName string, model interface{}
 		var params map[string]string
 		params, err = daoGetConfigParams(db, strConfigName)
 		values, _ := parseModelValues(model, TagName_DB)
+		if len(values) == 0 {
+			values, _ = parseModelValues(model, TagName_JSON)
+			if len(values) == 0 {
+				values, _ = parseModelValues(model, TagName_BSON)
+			}
+		}
 
 		for k, v := range values {
 			var strValue string
