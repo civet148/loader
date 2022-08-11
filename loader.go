@@ -107,7 +107,8 @@ func setCliValues(ctx *cli.Context, model interface{}) error {
 		return err
 	}
 	if len(values) == 0 {
-		return log.Errorf("no CLI tag found in model")
+		log.Warnf("no CLI tag found in model, use database values instead")
+		return nil
 	}
 	if err = setModelValues(ctx, model); err != nil {
 		return err
