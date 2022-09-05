@@ -19,13 +19,19 @@ const (
 	CMD_FLAG_NAME_DOMAIN     = "domain"
 )
 
+type Person struct {
+	Age  int    `json:"age"`
+	Name string `json:"name"`
+}
 type Config struct {
-	Debug     bool   `cli:"debug" json:"debug" db:"debug" toml:"debug"`
-	HttpAddr  string `cli:"http-addr" json:"http_addr" db:"http_addr" toml:"http_addr"`
-	Static    string `cli:"static" json:"static" db:"static" toml:"static"`
-	ImagePath string `cli:"image-path" json:"image_path" db:"image_path" toml:"image_path"`
-	Domain    string `cli:"domain" json:"domain" db:"domain" toml:"domain"`
-	Timeout   int    `cli:"timeout" json:"timeout" db:"timeout" toml:"timeout"`
+	Debug     bool     `cli:"debug" json:"debug" db:"debug" toml:"debug"`
+	HttpAddr  string   `cli:"http-addr" json:"http_addr" db:"http_addr" toml:"http_addr"`
+	Static    string   `cli:"static" json:"static" db:"static" toml:"static"`
+	ImagePath string   `cli:"image-path" json:"image_path" toml:"image_path"`
+	Domain    string   `cli:"domain" json:"domain" toml:"domain"`
+	Timeout   int      `cli:"timeout" json:"timeout" toml:"timeout"`
+	Keys      []string `cli:"keys" json:"keys" toml:"keys"`
+	Person    Person   `json:"person"`
 }
 
 func main() {
@@ -59,6 +65,11 @@ func main() {
 				Static:    "/opt/static",
 				ImagePath: "/data/images",
 				Domain:    "https://www.mydomain.com",
+				Keys:      []string{"key1", "key2"},
+				Person: Person{
+					Age:  18,
+					Name: "John",
+				},
 			}
 			var strDSN = "root:123456@tcp(127.0.0.1:3306)/test?charset=utf8"
 

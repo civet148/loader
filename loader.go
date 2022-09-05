@@ -2,6 +2,7 @@ package loader
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
@@ -51,22 +52,11 @@ func Configure(ctx *cli.Context, strDSN, strConfigName string, model interface{}
 
 		var params map[string]string
 		params, err = daoGetConfigParams(db, strConfigName)
-		values, _ := parseModelValues(model, TagName_DB)
-		if len(values) == 0 {
-			values, _ = parseModelValues(model, TagName_JSON)
-			if len(values) == 0 {
-				values, _ = parseModelValues(model, TagName_BSON)
-			}
-		}
-
+		values, _ := parseModelValues(model, TagName_DB, TagName_JSON, TagName_BSON, TagName_TOML)
 		for k, v := range values {
 			var strValue string
-			switch v.(type) {
-			case string:
-				strValue = fmt.Sprintf("\"%v\"", v.(string))
-			default:
-				strValue = fmt.Sprintf("%v", v)
-			}
+			data, _ := json.Marshal(v)
+			strValue = string(data)
 			if _, ok := params[k]; ok {
 				continue
 			}
@@ -116,7 +106,7 @@ func setCliValues(ctx *cli.Context, model interface{}) error {
 	return err
 }
 
-func parseModelValues(model interface{}, tag string) (map[string]interface{}, error) {
+func parseModelValues(model interface{}, tags ...string) (map[string]interface{}, error) {
 	var values map[string]interface{}
 	typ := reflect.TypeOf(model)
 	val := reflect.ValueOf(model)
@@ -133,7 +123,7 @@ func parseModelValues(model interface{}, tag string) (map[string]interface{}, er
 	switch kind {
 	case reflect.Struct:
 		{
-			values = parseStructField(typ, val, tag)
+			values = parseStructField(typ, val, tags...)
 		}
 	default:
 		{
@@ -144,7 +134,7 @@ func parseModelValues(model interface{}, tag string) (map[string]interface{}, er
 }
 
 // parse struct fields
-func parseStructField(typ reflect.Type, val reflect.Value, tag string) map[string]interface{} {
+func parseStructField(typ reflect.Type, val reflect.Value, tags ...string) map[string]interface{} {
 	var values = make(map[string]interface{})
 
 	NumField := val.NumField()
@@ -159,9 +149,12 @@ func parseStructField(typ reflect.Type, val reflect.Value, tag string) map[strin
 		if !valField.IsValid() || !valField.CanInterface() {
 			continue
 		}
-		tagVal := getTag(typField, tag)
-		if tagVal != "" {
-			values[tagVal] = valField.Interface()
+		for _, tag := range tags {
+			tagVal := getTag(typField, tag)
+			if tagVal != "" {
+				values[tagVal] = valField.Interface()
+				break
+			}
 		}
 	}
 
