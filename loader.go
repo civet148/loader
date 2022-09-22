@@ -10,7 +10,10 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
+
+var refreshSeconds  = 30
 
 const (
 	TagName_DB   = "db"
@@ -42,51 +45,73 @@ func Configure(ctx *cli.Context, strDSN, strConfigName string, model interface{}
 	if strDSN != "" {
 		db, err := sqlca.NewEngine(strDSN)
 		if err != nil {
-			log.Errorf(err.Error())
-			return err
+			return log.Errorf("connect to [%s] error [%s]", err.Error())
 		}
-
-		if err = daoInitTable(db, strConfigName); err != nil {
-			return err
-		}
-
-		var params map[string]string
-		params, err = daoGetConfigParams(db, strConfigName)
-		values, _ := parseModelValues(model, TagName_DB, TagName_JSON, TagName_BSON, TagName_TOML)
-		for k, v := range values {
-			var strValue string
-			data, _ := json.Marshal(v)
-			strValue = string(data)
-			if _, ok := params[k]; ok {
-				continue
-			}
-			var do = &RunConfigDO{
-				ConfigName:  strConfigName,
-				ConfigKey:   k,
-				ConfigValue: strValue,
-			}
-			err = daoInsertConfig(db, do)
-			if err != nil {
-				err = log.Errorf(err.Error())
-				return err
-			}
-		}
-
-		//read run config params from database
-		err = daoLoadConfig(db, strConfigName, model)
+		err = loadFromDatabase(db, strConfigName, model)
 		if err != nil {
-			err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+			return log.Errorf("load from database error [%s]", err.Error())
+		}
+		go monitorConfigChange(db, strConfigName, model)
+	}
+
+	return loadFromCLI(ctx, model)
+}
+
+func SetRefreshInterval(seconds int) {
+	refreshSeconds = seconds
+}
+
+func loadFromDatabase(db *sqlca.Engine, strConfigName string, model interface{}) (err error) {
+	if err = daoInitTable(db, strConfigName); err != nil {
+		return err
+	}
+
+	var params map[string]string
+	params, err = daoGetConfigParams(db, strConfigName)
+	values, _ := parseModelValues(model, TagName_DB, TagName_JSON, TagName_BSON, TagName_TOML)
+	for k, v := range values {
+		var strValue string
+		data, _ := json.Marshal(v)
+		strValue = string(data)
+		if _, ok := params[k]; ok {
+			continue
+		}
+		var do = &RunConfigDO{
+			ConfigName:  strConfigName,
+			ConfigKey:   k,
+			ConfigValue: strValue,
+		}
+		err = daoInsertConfig(db, do)
+		if err != nil {
+			err = log.Errorf(err.Error())
 			return err
 		}
 	}
 
+	//read run config params from database
+	err = daoLoadConfig(db, strConfigName, model)
+	if err != nil {
+		err = log.Errorf("config json [%s] unmarshal error [%s]", err.Error())
+		return err
+	}
+	return
+}
+
+func loadFromCLI(ctx *cli.Context, model interface{}) (err error) {
 	if ctx != nil {
-		err := setCliValues(ctx, model)
-		if err != nil {
-			return err
+		return setCliValues(ctx, model)
+	}
+	return
+}
+
+func monitorConfigChange(db *sqlca.Engine, strConfigName string, model interface{}) {
+	ticker := time.NewTicker(time.Duration(refreshSeconds)*time.Second)
+	for {
+		select {
+		case <-ticker.C:
+			_ = loadFromDatabase(db, strConfigName, model)
 		}
 	}
-	return nil
 }
 
 //overwrite model params by CLI flags

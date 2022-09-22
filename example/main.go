@@ -5,6 +5,7 @@ import (
 	"github.com/civet148/log"
 	"github.com/urfave/cli/v2"
 	"os"
+	"time"
 )
 
 const (
@@ -76,7 +77,7 @@ func main() {
 			if cctx.Args().First() != "" {
 				strDSN = cctx.Args().First()
 			}
-
+			loader.SetRefreshInterval(5)
 			err := loader.Configure(
 				cctx,
 				strDSN,
@@ -87,7 +88,10 @@ func main() {
 				log.Errorf("load run config from db error [%s]", err)
 				return err
 			}
-			log.Infof("config from db [%+v]", cfg)
+			for i := 0; i < 10000; i++ {
+				log.Infof("config from db [%+v]", cfg)
+				time.Sleep(5*time.Second)
+			}
 			return nil
 		},
 	}
