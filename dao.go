@@ -2,8 +2,10 @@ package loader
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/civet148/log"
 	"github.com/civet148/sqlca/v2"
+	"strings"
 )
 
 func daoInsertConfig(db *sqlca.Engine, do *RunConfigDO) (err error) {
@@ -62,18 +64,26 @@ func daoGetConfigParams(db *sqlca.Engine, strConfigName string) (params map[stri
 }
 
 func daoLoadConfig(db *sqlca.Engine, strConfigName string, model interface{}) (err error) {
-	/*
-	 SELECT  CONCAT('{', GROUP_CONCAT('"', config_key, '":', config_value, '"'), '}') AS config FROM run_config  WHERE 1=1 AND config_name='user-backend';
-	*/
 	var strConfigJson string
-	if _, err = db.Model(&strConfigJson).
-		Table(TableNameRunConfig).
-		Select("CONCAT('{', GROUP_CONCAT('\"', config_key, '\":', config_value), '}') AS config").
+	var dos []*RunConfigDO
+	_, err = db.Model(&dos).Table(TableNameRunConfig).
+		Select(
+			RUN_CONFIG_COLUMN_CONFIG_KEY,
+			RUN_CONFIG_COLUMN_CONFIG_VALUE,
+		).
 		Equal(RUN_CONFIG_COLUMN_CONFIG_NAME, strConfigName).
-		Query(); err != nil {
+		Equal(RUN_CONFIG_COLUMN_DELETED, 0).
+		Query()
+	if err != nil {
 		err = log.Errorf("load config from database error [%s]", err.Error())
 		return err
 	}
+	var kvs []string
+
+	for _, v := range dos {
+		kvs = append(kvs, fmt.Sprintf("\"%s\":%s",v.ConfigKey, v.ConfigValue))
+	}
+	strConfigJson = fmt.Sprintf("{%s}", strings.Join(kvs, ","))
 	if err = json.Unmarshal([]byte(strConfigJson), model); err != nil {
 		err = log.Errorf("config json %s unmarshal error [%s]", strConfigJson, err.Error())
 		return err
