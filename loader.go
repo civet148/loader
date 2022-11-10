@@ -51,7 +51,7 @@ func Configure(ctx *cli.Context, strDSN, strConfigName string, model interface{}
 		if err != nil {
 			return log.Errorf("load from database error [%s]", err.Error())
 		}
-		go monitorConfigChange(db, strConfigName, model)
+		//go monitorConfigChange(db, strConfigName, model)
 	}
 
 	return loadFromCLI(ctx, model)
